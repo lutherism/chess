@@ -5,23 +5,109 @@
     <style>
       .cell {
         width: 50px;
-        height: 50;
-        display: inline-block;
-        textAlign: center;
-        textSize: 2em;
-        backgroundColor: #DDDDDD
+        height: 50px;
+        margin: -2px;
+        display: table-cell;
+        border-right: 1px solid grey;
+        border-bottom: 1px solid grey;
+        text-align: center;
+        position: relative;
+        font-size: 1.2em;
+        background-color: #DDDDDD;
+        font-family: sans-serif;
       }
 
       .dark {
         background-color: #999999;
       }
 
+      .occupied {
+        cursor: pointer;
+      }
+
+      .BBP {
+        background: url('/assets/black-pawn.svg');
+      }
+
+      .BR {
+        background: url('/assets/black-rook.svg');
+      }
+
+      .BB {
+        background: url('/assets/black-bishop.svg');
+      }
+
+      .BN {
+        background: url('/assets/black-knight.svg');
+      }
+
+      .BK {
+        background: url('/assets/black-king.svg');
+      }
+
+      .BQ {
+        background: url('/assets/black-queen.svg');
+      }
+
+      .WWP {
+        background: url('/assets/white-pawn.svg');
+      }
+
+      .WR {
+        background: url('/assets/white-rook.svg');
+      }
+
+      .WB {
+        background: url('/assets/white-bishop.svg');
+      }
+
+      .WN {
+        background: url('/assets/white-knight.svg');
+      }
+
+      .WK {
+        background: url('/assets/white-king.svg');
+      }
+
+      .WQ {
+        background: url('/assets/white-queen.svg');
+      }
+
+      .piece-icon {
+        width: 100%;
+        height: 100%;
+        display: block;
+        position:absolute;
+        background-size: contain;
+      }
+
+      .board {
+        border-top: 1px solid grey;
+        border-left: 1px solid grey;
+        display: inline-block;
+      }
+
+      .highlight {
+        width: 100%;
+        height: 100%;
+        display: block;
+        position: absolute;
+      }
+
+      .hover {
+        background-color: rgba(0, 0, 255, .1);
+      }
+
+      .hover-attacked {
+        background-color: rgba(255, 0, 0, .1);
+      }
+
       .selected {
-        background-color: blue;
+        background-color: rgba(0, 0, 255, .5);
       }
 
       .attacked {
-        background-color: red;
+        background-color: rgba(255, 0, 0, .5);
       }
     </style>
   </head>

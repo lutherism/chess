@@ -38,7 +38,6 @@ var ALLOWED_PROGRESSIONS = {
   "BP": [[1, 0], [2, 0]],
   "WP": [[-1, 0], [-2, 0]]
 };
-
 var ALLOWED_ATTACKS = {
   "R": ALLOWED_PROGRESSIONS.R,
   "N": ALLOWED_PROGRESSIONS.N,
@@ -108,10 +107,14 @@ function getPiece(board, pos) {
 //  returns Board the board state after executing the inputed move
 //
 function processMove(board, move) {
+  if (typeof nextPosition === 'string') {
+    return processCastle(board, move);
+  }
   //clone the list of rows
   var newBoard = [].concat(board);
   var initialPosition = move[0];
   var nextPosition = move[1];
+
   //clone the row we change
   var newFirstRow = [].concat(newBoard[initialPosition[0]]);
   var movingPiece = getPiece(board, initialPosition);
@@ -131,6 +134,39 @@ function processMove(board, move) {
     //otherwise add it to the existing new row
     newFirstRow[nextPosition[1]] = movingPiece;
   }
+  newBoard[initialPosition[0]] = newFirstRow;
+
+  return newBoard;
+}
+
+function processCastle(board, move) {
+  var newBoard = [].concat(board);
+  var initialPosition = move[0];
+  var nextPosition = move[1];
+  var color = getPieceColor(board, initialPosition);
+  var initKingFile = 3;
+  var initRookFile;
+  var endRookFile;
+  var endKingFile;
+
+  if (nextPosition.slice(1).toUpperCase() === 'QUEEN') {
+    initRookFile = 7;
+    endRookFile = 4;
+    endKingFile = 5;
+  }
+
+  if (nextPosition.slice(1).toUpperCase() === 'KING') {
+    initRookFile = 0;
+    endRookFile = 2;
+    endKingFile = 1;
+  }
+
+  var newFirstRow = [].concat(newBoard[initialPosition[0]]);
+  newFirstRow[endKingFile] = color + "K";
+  newFirstRow[endRookFile] = color + "R"
+  newFirstRow[initKingFile] = '__';
+  newFirstRow[initRookFile] = '__';
+
   newBoard[initialPosition[0]] = newFirstRow;
 
   return newBoard;
@@ -239,7 +275,70 @@ function unblockedDiagMoves(board, pos) {
   return moves;
 }
 
-function activeTargets(board, pos) {
+function castleMoves(board, pos, remainingCastles) {
+  if (!remainingCastles) return [];
+  if (isCellOnBoardChecking(board)) return [];
+  var moves = [];
+  if (getPiece(board, pos) === "BK") {
+    if (remainingCastles.BQueen &&
+      getPiece(board, [0,7]) === "BR" &&
+      canCastleThrough(board, [0, 2])) {
+      moves.push([0, 1]);
+    }
+    if (remainingCastles.BKing &&
+      getPiece(board, [0,0]) === "BR" &&
+      canCastleThrough(board, [0, 4])) {
+      moves.push([0, 5]);
+    }
+  }
+  if (getPiece(board, pos) === "WK") {
+    if (remainingCastles.WQueen &&
+      getPiece(board, [7,7]) === "WR" &&
+      canCastleThrough(board, [7, 4])) {
+      moves.push([7, 5]);
+    }
+    if (remainingCastles.WKing &&
+      getPiece(board, [7,0]) === "WR" &&
+      canCastleThrough(board, [7, 2])) {
+      moves.push([7, 1]);
+    }
+  }
+  return moves;
+}
+function canCastleThrough(board, pos) {
+  if (getPiece(board, pos) !== '__') return false;
+  if (getPiece(board, pos) !== '__') return false;
+  if (!(pos[0] === 0 || pos[0] === 7)) return false;
+
+  var kingPos = [pos[0], 3];
+  return !!(typeof isCellOnBoardChecking(processMove(board, [kingPos, pos])) !== 'object');
+}
+
+function remainingCastles(history) {
+  return history.reduce(function(a, mv) {
+    var piece = getPiece(BEGINING_POSITIONS, mv[0])
+    if (getType(piece) === 'K') {
+      delete a[getColor(piece) + 'King'];
+      delete a[getColor(piece) + 'Queen'];
+    }
+    if (getType(piece) === 'R') {
+      if (mv[0][1] === 7) {
+        delete a[getColor(piece) + 'Queen'];
+      }
+      if (mv[0][1] === 0) {
+        delete a[getColor(piece) + 'King'];
+      }
+    }
+    return a;
+  }, {
+    BQueen: true,
+    BKing: true,
+    WQueen: true,
+    WKing: true
+  });
+}
+
+function activeTargets(board, pos, remainingCastles) {
   var piece = getPiece(board, pos);
   var type = piece.slice(1);
   if (type === "_") return [];
@@ -269,11 +368,11 @@ function activeTargets(board, pos) {
       break;
   }
 
-  return moves || [];
+  return moves.concat(castleMoves(board, pos, remainingCastles)) || [];
 }
 
-function checkFilteredMoves(board, pos) {
-  var moves = activeTargets(board, pos);
+function checkFilteredMoves(board, pos, remainingCastles) {
+  var moves = activeTargets(board, pos, remainingCastles);
   return moves.filter(function (target) {
     var potentialBoard = processMove(board, [pos, target]);
     var check = isCellOnBoardChecking(potentialBoard);
@@ -389,6 +488,13 @@ function chessEngine(history) {
   var turn = INITIAL_TURN;
   var currBoard = [].concat(BEGINING_POSITIONS);
   if (history.length === 0) return currBoard;
+  var remainingCastles = {
+    BQueen: true,
+    BKing: true,
+    WQueen: true,
+    WKing: true
+  };
+
   console.log("running through moves: \n", history.map(moveToReadable).join('\n'));
 
   var valid = history.reduce(function(board, move) {
@@ -402,7 +508,7 @@ function chessEngine(history) {
 
     if (piece[0] !== turn) return false;
     turn = turn === "W" ? "B" : "W";
-    var potentialMoves = checkFilteredMoves(board, initialPosition);
+    var potentialMoves = checkFilteredMoves(board, initialPosition, remainingCastles);
     //console.log("found moves for position:", posToReadable(initialPosition), "=>", potentialMoves.map(posToReadable).join(' '));
     if (potentialMoves.map(posToReadable).indexOf(posToReadable(nextPosition)) > -1) {
       return processMove(board, move);
@@ -431,6 +537,7 @@ chessEngine.processMove = processMove;
 chessEngine.renderBoard = renderBoard;
 chessEngine.getPiece = getPiece;
 chessEngine.readableToPosition = readableToPosition;
+chessEngine.remainingCastles = remainingCastles;
 
 
 module.exports = chessEngine;

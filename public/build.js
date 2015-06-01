@@ -33885,7 +33885,50 @@ module.exports = warning;
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{}],3:[function(require,module,exports){
 var React = require('react');
+
+var ChessCell = React.createClass({displayName: "ChessCell",
+  render: function(){
+    var cellCN = React.addons.classSet({
+      "cell": true,
+      "occupied": this.props.cell !== '__',
+      "dark": this.props.dark
+    });
+    var highlightCN = React.addons.classSet({
+      "highlight": true,
+      "attacked": this.props.attacked,
+      "hover-attacked": this.props.hoverAttacked,
+      "hover": this.props.hover,
+      "selected": this.props.selected
+    })
+    return (
+      React.createElement("div", {key: this.props.key, onClick: this.cellClick, 
+          className: cellCN, 
+          onMouseOver: this.handleHover, 
+          onMouseOut: this.handleMouseLeave}, 
+          React.createElement("span", {className: highlightCN}), 
+          React.createElement("span", {className: 'piece-icon ' + this.props.cell})
+
+      )
+    );
+  },
+  handleHover: function(e) {
+    this.props.onMouseOver(this.props.pos, this.props.cell, e);
+  },
+  handleMouseLeave: function(e) {
+    this.props.onMouseOut(this.props.pos, this.props.cell, e);
+  },
+  cellClick: function(e) {
+    this.props.onClick(this.props.pos, this.props.cell, e);
+  }
+});
+
+module.exports = ChessCell;
+
+
+},{"react":2}],4:[function(require,module,exports){
+var React = require('react');
 var chessEngine = require('../util/chessEngine');
+var ChessCell = require('./chess-cell.jsx');
 var _ = require('lodash');
 
 var chessGame = React.createClass({displayName: "chessGame",
@@ -33894,51 +33937,113 @@ var chessGame = React.createClass({displayName: "chessGame",
       board: chessEngine.BEGINING_POSITIONS,
       moves: [],
       selectedCell: null,
+      hoveredCell: null,
     };
+  },/*
+  componentWillMount: function() {
+    this._windowListener = window.addEventListener('resize', this.handleResize, false);
   },
+  componentWillUnmount: function() {
+    window.removeEventListener('resize', this.handleResize, false);
+  },
+  handleResize: function(e) {
+    this.setState({
+      windowHeight: window.innerHeight,
+      windowWidth: window.innerWidth
+    });
+  },*/
   render: function() {
-    var board = chessEngine(this.state.moves);
-    var STYLE_TEMP = {
-      width: 50,
-      height: 50,
-      display: "inline-block",
-      textAlign: "center",
-      textSize: "2em",
-      backgroundColor: "#DDDDDD"
-    };
+    var board = this.state.board;//chessEngine(this.state.moves);
+    var remainingCastles = chessEngine.remainingCastles(this.state.moves);
+    var turn;
+    turn = this.state.moves.length % 2 ? "Black" : "White";
+    var check = chessEngine.check(board);
     return (
-      React.createElement("div", {onClick: this.boardClick, className: "board"}, 
+      React.createElement("div", {onClick: this.boardClick}, 
+        React.createElement("h1", null, 
+          "It's " + turn + "'s turn."
+        ), 
+        React.createElement("div", {className: "board"}, 
         board.map(function(row, x) {
           return (
             React.createElement("div", {key: x, className: "row"}, 
             row.map(function(cell, y) {
-              var cn = React.addons.classSet({
-                "cell": true,
-                "dark": ((y%2) + (x%2) === 1),
-                "attacked": (this.state.selectedCell &&
-                  chessEngine.availMoves(
-                    board, this.state.selectedCell)
-                  .map(chessEngine.posToReadable)
-                  .indexOf(chessEngine.posToReadable([x, y])) > -1),
-                "selected": (this.state.selectedCell &&
-                  this.state.selectedCell[0] === x &&
-                  this.state.selectedCell[1] === y)
-              });
               return (
-                React.createElement("div", {key: ''+x+y, onClick: this.cellClick.bind(this, [x, y], cell), 
-                    className: cn}, 
-                  cell
-                )
+                React.createElement(ChessCell, {
+                  key: '' + x + y, 
+                  cell: cell, 
+                  pos: [x, y], 
+                  hover: 
+                      this.state.hoverCell &&
+                      this.state.hoverCell[0] === x &&
+                      this.state.hoverCell[1] === y, 
+                    
+                  attacked: this.state.selectedCell &&
+                    chessEngine.availMoves(board, this.state.selectedCell, remainingCastles)
+                      .map(chessEngine.posToReadable)
+                      .indexOf(chessEngine.posToReadable([x, y])) > -1, 
+                  hoverAttacked: this.state.hoverCell &&
+                    chessEngine.availMoves(board, this.state.hoverCell, remainingCastles)
+                      .map(chessEngine.posToReadable)
+                      .indexOf(chessEngine.posToReadable([x, y])) > -1, 
+                  selected: this.state.selectedCell &&
+                    this.state.selectedCell[0] === x &&
+                    this.state.selectedCell[1] === y, 
+                  dark: (y%2) + (x%2) === 1, 
+                  onMouseOver: this.handleHover, 
+                  onMouseOut: this.handleMouseLeave, 
+                  onClick: this.cellClick})
               );
             }.bind(this))
           )
         );
       }.bind(this))
+    ), 
+      check ?
+        React.createElement("h3", null, 
+          "check."
+        ) : null, 
+      React.createElement("a", {onClick: this.handleReset}, "Reset"), 
+      React.createElement("div", {style: {display:"inline"}}, 
+        React.createElement("ul", null, 
+          this.state.moves.map(function(m, i) {
+            return (
+              React.createElement("li", null, 
+                React.createElement("label", null, 
+                  Math.ceil((i+1) / 2) + '. '
+                ), 
+                React.createElement("span", null, 
+                  chessEngine.moveToReadable(m)
+                )
+              )
+            );
+          })
+        )
+      ), 
+
+      React.createElement("a", {href: "https://github.com/lutherism/chess"}, 
+        "Github Page"
+      )
       )
     );
   },
+  handleHover: function(pos, cell, e) {
+    console.log("hover", cell);
+    this.setState({hoverCell: pos});
+  },
+  handleMouseLeave: function(pos, cell, e) {
+    console.log("leave", cell);
+    if (this.state.hoverCell === pos) this.setState({hoverCell: null});
+  },
   boardClick: function(e) {
     this.setState({selectedCell: null});
+  },
+  handleReset: function() {
+    var newBoard = chessEngine([]);
+    this.setState({
+      moves: [],
+      board: newBoard
+    });
   },
   cellClick: function(pos, cell, e) {
     var turn = "W";
@@ -33950,10 +34055,11 @@ var chessGame = React.createClass({displayName: "chessGame",
       e.stopPropagation();
     } else {
       var newMoves = this.state.moves.concat([[this.state.selectedCell, pos]]);
-
-      if (chessEngine(newMoves)) {
+      var newBoard = chessEngine(newMoves);
+      if (newBoard) {
         e.stopPropagation();
         this.setState({
+          board: newBoard,
           moves: newMoves,
           selectedCell: null
         });
@@ -33965,14 +34071,14 @@ var chessGame = React.createClass({displayName: "chessGame",
 module.exports = chessGame;
 
 
-},{"../util/chessEngine":5,"lodash":1,"react":2}],4:[function(require,module,exports){
+},{"../util/chessEngine":6,"./chess-cell.jsx":3,"lodash":1,"react":2}],5:[function(require,module,exports){
 var ChessGame = require('./components/chess-game.jsx');
 var React = require('react');
 
 React.render(React.createElement(ChessGame, null), document.body);
 
 
-},{"./components/chess-game.jsx":3,"react":2}],5:[function(require,module,exports){
+},{"./components/chess-game.jsx":4,"react":2}],6:[function(require,module,exports){
 (function (process){
 var BEGINING_POSITIONS = [
   ["BR",  "BN",  "BB",  "BK",  "BQ",  "BB",  "BN",  "BR"],
@@ -34014,7 +34120,6 @@ var ALLOWED_PROGRESSIONS = {
   "BP": [[1, 0], [2, 0]],
   "WP": [[-1, 0], [-2, 0]]
 };
-
 var ALLOWED_ATTACKS = {
   "R": ALLOWED_PROGRESSIONS.R,
   "N": ALLOWED_PROGRESSIONS.N,
@@ -34084,10 +34189,14 @@ function getPiece(board, pos) {
 //  returns Board the board state after executing the inputed move
 //
 function processMove(board, move) {
+  if (typeof nextPosition === 'string') {
+    return processCastle(board, move);
+  }
   //clone the list of rows
   var newBoard = [].concat(board);
   var initialPosition = move[0];
   var nextPosition = move[1];
+
   //clone the row we change
   var newFirstRow = [].concat(newBoard[initialPosition[0]]);
   var movingPiece = getPiece(board, initialPosition);
@@ -34107,6 +34216,39 @@ function processMove(board, move) {
     //otherwise add it to the existing new row
     newFirstRow[nextPosition[1]] = movingPiece;
   }
+  newBoard[initialPosition[0]] = newFirstRow;
+
+  return newBoard;
+}
+
+function processCastle(board, move) {
+  var newBoard = [].concat(board);
+  var initialPosition = move[0];
+  var nextPosition = move[1];
+  var color = getPieceColor(board, initialPosition);
+  var initKingFile = 3;
+  var initRookFile;
+  var endRookFile;
+  var endKingFile;
+
+  if (nextPosition.slice(1).toUpperCase() === 'QUEEN') {
+    initRookFile = 7;
+    endRookFile = 4;
+    endKingFile = 5;
+  }
+
+  if (nextPosition.slice(1).toUpperCase() === 'KING') {
+    initRookFile = 0;
+    endRookFile = 2;
+    endKingFile = 1;
+  }
+
+  var newFirstRow = [].concat(newBoard[initialPosition[0]]);
+  newFirstRow[endKingFile] = color + "K";
+  newFirstRow[endRookFile] = color + "R"
+  newFirstRow[initKingFile] = '__';
+  newFirstRow[initRookFile] = '__';
+
   newBoard[initialPosition[0]] = newFirstRow;
 
   return newBoard;
@@ -34215,7 +34357,70 @@ function unblockedDiagMoves(board, pos) {
   return moves;
 }
 
-function activeTargets(board, pos) {
+function castleMoves(board, pos, remainingCastles) {
+  if (!remainingCastles) return [];
+  if (isCellOnBoardChecking(board)) return [];
+  var moves = [];
+  if (getPiece(board, pos) === "BK") {
+    if (remainingCastles.BQueen &&
+      getPiece(board, [0,7]) === "BR" &&
+      canCastleThrough(board, [0, 2])) {
+      moves.push([0, 1]);
+    }
+    if (remainingCastles.BKing &&
+      getPiece(board, [0,0]) === "BR" &&
+      canCastleThrough(board, [0, 4])) {
+      moves.push([0, 5]);
+    }
+  }
+  if (getPiece(board, pos) === "WK") {
+    if (remainingCastles.WQueen &&
+      getPiece(board, [7,7]) === "WR" &&
+      canCastleThrough(board, [7, 4])) {
+      moves.push([7, 5]);
+    }
+    if (remainingCastles.WKing &&
+      getPiece(board, [7,0]) === "WR" &&
+      canCastleThrough(board, [7, 2])) {
+      moves.push([7, 1]);
+    }
+  }
+  return moves;
+}
+function canCastleThrough(board, pos) {
+  if (getPiece(board, pos) !== '__') return false;
+  if (getPiece(board, pos) !== '__') return false;
+  if (!(pos[0] === 0 || pos[0] === 7)) return false;
+
+  var kingPos = [pos[0], 3];
+  return !!(typeof isCellOnBoardChecking(processMove(board, [kingPos, pos])) !== 'object');
+}
+
+function remainingCastles(history) {
+  return history.reduce(function(a, mv) {
+    var piece = getPiece(BEGINING_POSITIONS, mv[0])
+    if (getType(piece) === 'K') {
+      delete a[getColor(piece) + 'King'];
+      delete a[getColor(piece) + 'Queen'];
+    }
+    if (getType(piece) === 'R') {
+      if (mv[0][1] === 7) {
+        delete a[getColor(piece) + 'Queen'];
+      }
+      if (mv[0][1] === 0) {
+        delete a[getColor(piece) + 'King'];
+      }
+    }
+    return a;
+  }, {
+    BQueen: true,
+    BKing: true,
+    WQueen: true,
+    WKing: true
+  });
+}
+
+function activeTargets(board, pos, remainingCastles) {
   var piece = getPiece(board, pos);
   var type = piece.slice(1);
   if (type === "_") return [];
@@ -34245,11 +34450,11 @@ function activeTargets(board, pos) {
       break;
   }
 
-  return moves || [];
+  return moves.concat(castleMoves(board, pos, remainingCastles)) || [];
 }
 
-function checkFilteredMoves(board, pos) {
-  var moves = activeTargets(board, pos);
+function checkFilteredMoves(board, pos, remainingCastles) {
+  var moves = activeTargets(board, pos, remainingCastles);
   return moves.filter(function (target) {
     var potentialBoard = processMove(board, [pos, target]);
     var check = isCellOnBoardChecking(potentialBoard);
@@ -34365,6 +34570,13 @@ function chessEngine(history) {
   var turn = INITIAL_TURN;
   var currBoard = [].concat(BEGINING_POSITIONS);
   if (history.length === 0) return currBoard;
+  var remainingCastles = {
+    BQueen: true,
+    BKing: true,
+    WQueen: true,
+    WKing: true
+  };
+
   console.log("running through moves: \n", history.map(moveToReadable).join('\n'));
 
   var valid = history.reduce(function(board, move) {
@@ -34378,7 +34590,7 @@ function chessEngine(history) {
 
     if (piece[0] !== turn) return false;
     turn = turn === "W" ? "B" : "W";
-    var potentialMoves = checkFilteredMoves(board, initialPosition);
+    var potentialMoves = checkFilteredMoves(board, initialPosition, remainingCastles);
     //console.log("found moves for position:", posToReadable(initialPosition), "=>", potentialMoves.map(posToReadable).join(' '));
     if (potentialMoves.map(posToReadable).indexOf(posToReadable(nextPosition)) > -1) {
       return processMove(board, move);
@@ -34407,13 +34619,14 @@ chessEngine.processMove = processMove;
 chessEngine.renderBoard = renderBoard;
 chessEngine.getPiece = getPiece;
 chessEngine.readableToPosition = readableToPosition;
+chessEngine.remainingCastles = remainingCastles;
 
 
 module.exports = chessEngine;
 
 
 }).call(this,require('_process'))
-},{"_process":6}],6:[function(require,module,exports){
+},{"_process":7}],7:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -34473,4 +34686,4 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}]},{},[4]);
+},{}]},{},[5]);

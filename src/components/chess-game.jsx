@@ -6,8 +6,8 @@ var _ = require('lodash');
 var chessGame = React.createClass({
   getInitialState: function() {
     return {
-      board: chessEngine.BEGINING_POSITIONS,
-      moves: [],
+      board: chessEngine(this.props.initialMoves || []),
+      moves: this.props.initialMoves,
       selectedCell: null,
       hoveredCell: null,
     };
@@ -100,11 +100,9 @@ var chessGame = React.createClass({
     );
   },
   handleHover: function(pos, cell, e) {
-    console.log("hover", cell);
     this.setState({hoverCell: pos});
   },
   handleMouseLeave: function(pos, cell, e) {
-    console.log("leave", cell);
     if (this.state.hoverCell === pos) this.setState({hoverCell: null});
   },
   boardClick: function(e) {
@@ -130,6 +128,7 @@ var chessGame = React.createClass({
       var newBoard = chessEngine(newMoves);
       if (newBoard) {
         e.stopPropagation();
+        this.props.parseGame.save({moves: newMoves});
         this.setState({
           board: newBoard,
           moves: newMoves,

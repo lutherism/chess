@@ -23,7 +23,7 @@
       "reactify"
     ]
   },
-  "browser" : {
+  "browser": {
     "react": "./node_modules/react/dist/react-with-addons.js"
   },
   "homepage": "https://github.com/lutherism/chess",
@@ -31,6 +31,7 @@
     "colors": "^1.1.0",
     "dispatchr": "^0.3.3",
     "express": "^4.12.4",
+    "node-uuid": "^1.4.3",
     "react": "^0.13.3",
     "reactify": "^1.1.1"
   },

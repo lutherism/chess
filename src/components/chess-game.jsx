@@ -11,6 +11,12 @@ var chessGame = React.createClass({
       selectedCell: null,
       hoveredCell: null,
     };
+  },
+  componentWillMount: function() {
+    this.props.parseGame.on("change", this.handleGameSync);
+  },
+  componentWillUnmount: function() {
+    this.props.parseGame.off("change", this.handleGameSync);
   },/*
   componentWillMount: function() {
     this._windowListener = window.addEventListener('resize', this.handleResize, false);
@@ -24,24 +30,39 @@ var chessGame = React.createClass({
       windowWidth: window.innerWidth
     });
   },*/
+  handleGameSync: function() {
+    this.setState({
+      moves: this.props.parseGame.get("moves"),
+      board: chessEngine(this.props.parseGame.get("moves"))
+    });
+  },
   render: function() {
     var board = this.state.board;//chessEngine(this.state.moves);
     var remainingCastles = chessEngine.remainingCastles(this.state.moves);
     var turn;
-    turn = this.state.moves.length % 2 ? "Black" : "White";
+    turn = this.state.moves.length % 2 ? "W" : "B";
     var check = chessEngine.check(board);
     return (
       <div onClick={this.boardClick}>
-        <h1>
-          {"It's " + turn + "'s turn."}
-        </h1>
+        {turn === "B" ?
+          <h1>
+            {"It's "}
+            <span style={{position: "relative", display:"inline-block", width:24, height:24}} className="piece-icon WQ" />
+            {" "+ page.data.currentGame.get("white_player").get("username") + "'s turn."}
+          </h1> :
+          <h1>
+            {"It's "}
+            <span style={{position: "relative", display:"inline-block", width:24, height:24}} className="piece-icon BQ" />
+            {" "+ page.data.currentGame.get("black_player").get("username") + "'s turn."}
+          </h1>}
         <div className="board">
         {board.map(function(row, x) {
           return (
-            <div key={x} className="row">
+            <div key={''+x} className="row">
             {row.map(function(cell, y) {
               return (
                 <ChessCell
+                  passKey={'' + x + y}
                   key={'' + x + y}
                   cell={cell}
                   pos={[x, y]}
@@ -64,7 +85,8 @@ var chessGame = React.createClass({
                   dark={(y%2) + (x%2) === 1}
                   onMouseOver={this.handleHover}
                   onMouseOut={this.handleMouseLeave}
-                  onClick={this.cellClick} />
+                  onClick={this.cellSelect}
+                  onDrop={this.cellDrop} />
               );
             }.bind(this))}
           </div>
@@ -76,11 +98,12 @@ var chessGame = React.createClass({
           check.
         </h3> : null}
       <a onClick={this.handleReset}>Reset</a>
+      <a onClick={this.handleLogout}>Logout</a>
       <div style={{display:"inline"}}>
         <ul>
           {this.state.moves.map(function(m, i) {
             return (
-              <li>
+              <li key={i}>
                 <label>
                   {Math.ceil((i+1) / 2) + '. '}
                 </label>
@@ -99,6 +122,11 @@ var chessGame = React.createClass({
       </div>
     );
   },
+  handleLogOut: function() {
+    Parse.User.logOut().then(function() {
+      window.location = "/";
+    });
+  },
   handleHover: function(pos, cell, e) {
     this.setState({hoverCell: pos});
   },
@@ -115,7 +143,7 @@ var chessGame = React.createClass({
       board: newBoard
     });
   },
-  cellClick: function(pos, cell, e) {
+  cellSelect: function(pos, cell, e) {
     var turn = "W";
     if (this.state.moves.length % 2) turn = "B";
     if (!this.state.selectedCell && turn === cell[0]) {
@@ -124,17 +152,19 @@ var chessGame = React.createClass({
       });
       e.stopPropagation();
     } else {
-      var newMoves = this.state.moves.concat([[this.state.selectedCell, pos]]);
-      var newBoard = chessEngine(newMoves);
-      if (newBoard) {
-        e.stopPropagation();
-        this.props.parseGame.save({moves: newMoves});
-        this.setState({
-          board: newBoard,
-          moves: newMoves,
-          selectedCell: null
-        });
-      }
+      try {
+        var newMoves = this.state.moves.concat([[this.state.selectedCell, pos]]);
+        var newBoard = chessEngine(newMoves);
+        if (newBoard) {
+          e.stopPropagation();
+          this.props.parseGame.save({moves: newMoves});
+          this.setState({
+            board: newBoard,
+            moves: newMoves,
+            selectedCell: null
+          });
+        }
+      } catch (err) {}
     }
   }
 });

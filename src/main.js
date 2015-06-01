@@ -1,4 +1,5 @@
 var ChessGame = require('./components/chess-game.jsx');
+var Signup = require('./components/signup.jsx')
 var React = require('react');
 var uuid = require('node-uuid');
 var url = require('url');
@@ -6,23 +7,54 @@ var url = require('url');
 Parse.initialize("pEMmmQSKAsdP4JCRGew3AOtrbcEY2gU3n8cIWZLu",
   "VJOgJjwApqS8rBpH0umb9uyRYU2m8QDSqJUepS9d");
 
+window.page = {data: {}};
+
 var location = url.parse(window.location.href, true);
 
-if (!location.query.game) {
+if (!Parse.User.current()) {
+  React.render(React.createElement(Signup, {
+    onSubmit: function(userData, e) {
+      e.preventDefault();
+      if (userData.isSignup) {
+        delete userData.isSignup;
+        var user = new Parse.User();
+        user.signUp(userData).then(function() {
+          window.location = "/";
+        })
+      } else {
+        Parse.User.logIn(userData.username, userData.password).then(function(u) {
+          window.location = "/";
+        })
+      }
+    }
+  }), document.body)
+} else if (!location.query.game) {
   var Game = Parse.Object.extend("Game");
   var newGame = new Game();
-  newGame.save({
-    moves: []
-  }).then(function (obj) {
+  newGame.set({
+    moves: [],
+    white_player: Parse.User.current(),
+    status: "open"
+  }).save().then(function (obj) {
     window.location = "/?game=" + obj.id
   });
 } else {
   var Game = Parse.Object.extend("Game");
   var gn = new Game({id: location.query.game});
-  gn.fetch().then(function() {
+  page.data.currentGame = gn;
+  gn.fetch().then(function(game) {
+    if (!game.get("black_player") &&
+      game.get("white_player") !== Parse.User.current()) {
+      gn.save({
+        black_player: Parse.User.current(),
+        status: "active"
+      });
+    }
+    game.get('black_player').fetch();
+    game.get('white_player').fetch();
     React.render(React.createElement(ChessGame, {
-      parseGame: gn,
-      initialMoves: gn.get('moves')
+      parseGame: game,
+      initialMoves: game.get('moves')
     }), document.body);
   });
 }

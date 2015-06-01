@@ -24,18 +24,23 @@
     ]
   },
   "browser": {
-    "react": "./node_modules/react/dist/react-with-addons.js"
+    "react-draggable": "./node_modules/react-draggable/lib/draggable.js"
   },
   "homepage": "https://github.com/lutherism/chess",
   "dependencies": {
+    "classnames": "^2.1.2",
     "colors": "^1.1.0",
     "dispatchr": "^0.3.3",
     "express": "^4.12.4",
     "node-uuid": "^1.4.3",
     "react": "^0.13.3",
+    "react-draggable": "^0.8.0",
     "reactify": "^1.1.1"
   },
   "devDependencies": {
+    "gulp": "^3.8.11",
+    "gulp-sass": "^2.0.1",
+    "gulp-sourcemaps": "^1.5.2",
     "lodash": "^3.9.3"
   }
 }

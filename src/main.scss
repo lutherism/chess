@@ -68,6 +68,40 @@ table {
   background-color: #999999;
 }
 
+.splash {
+  text-align: center;
+
+  h1 {
+    font-size: 2em;
+  }
+  h2 {
+    font-size: 1.7em;
+
+    small {
+      font-size: .9em;
+      display: inline-block;
+      ul {
+        text-align: left;
+      }
+    }
+  }
+  li:before {
+    content: '•';
+    margin-right: 10px
+  }
+}
+
+h3 {
+  font-size: 1.2em
+}
+
+.form-field {
+  span {
+    width: 100px;
+    display: inline-block;
+  }
+}
+
 footer {
   background-color: grey;
   padding: 8px;

@@ -14,7 +14,7 @@ var GameItem = React.createClass({
       position: "relative"
     };
     if (!this.props.game.get('white_player') ||
-      !this.props.game.get('black_player')) return;
+      !this.props.game.get('black_player')) return <li>New Game</li>;
 
     if (page.data.currentGame.id === this.props.game.id) style.backgroundColor = "red";
     return (

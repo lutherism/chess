@@ -5,8 +5,7 @@ var Board = require('./chess-board.jsx');
 var GameItem = React.createClass({
   getInitialState: function() {
     return {
-      hover: false,
-      board: chessEngine(this.props.game.get('moves') || [])
+      hover: false
     };
   },
   render: function() {
@@ -51,7 +50,7 @@ var GameItem = React.createClass({
           left: 0
         }}>
         <Board
-          board={this.state.board}
+          board={chessEngine(this.props.game.get('moves') || [])}
           selectedCell={null}
           onBoardClick={function(){}}
           onClick={function(){}}

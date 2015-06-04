@@ -43,11 +43,13 @@ var chessGame = React.createClass({
     var check = chessEngine.check(board);
     return (
       <div>
-        <Board board={board}
-          selectedCell={this.state.selectedCell}
-          onBoardClick={this.boardClick}
-          onClick={this.cellSelect}
-          remainingCastles={remainingCastles}/>
+        <div className="main-board">
+          <Board board={board}
+            selectedCell={this.state.selectedCell}
+            onBoardClick={this.boardClick}
+            onClick={this.cellSelect}
+            remainingCastles={remainingCastles}/>
+        </div>
         {check ?
           <h3>
             check.

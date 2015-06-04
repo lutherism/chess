@@ -3,6 +3,7 @@ var Signup = require('./components/signup.jsx')
 var React = require('react');
 var uuid = require('node-uuid');
 var url = require('url');
+var GameActions = require('./actions/games.js');
 
 Parse.initialize("pEMmmQSKAsdP4JCRGew3AOtrbcEY2gU3n8cIWZLu",
   "VJOgJjwApqS8rBpH0umb9uyRYU2m8QDSqJUepS9d");
@@ -29,14 +30,9 @@ if (!Parse.User.current()) {
     }
   }), document.body)
 } else if (!location.query.game) {
-  var Game = Parse.Object.extend("Game");
-  var newGame = new Game();
-  newGame.set({
-    moves: [],
-    white_player: Parse.User.current(),
+  GameActions.createGame({
+    myColor: "white",
     status: "open"
-  }).save().then(function (obj) {
-    window.location = "/?game=" + obj.id
   });
 } else {
   var Game = Parse.Object.extend("Game");
@@ -50,8 +46,8 @@ if (!Parse.User.current()) {
         status: "active"
       });
     }
-    game.get('black_player').fetch();
-    game.get('white_player').fetch();
+    //game.get('black_player').fetch();
+    //game.get('white_player').fetch();
     React.render(React.createElement(ChessGame, {
       parseGame: game,
       initialMoves: game.get('moves')
